@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Primitive SVG Studio</title>
+  <style>
+    :root {
+      --bg-dark: #0f1117;
+      --bg-panel: #181b24;
+      --bg-card: #202431;
+      --bg-input: #12141c;
+      --border: #2c3242;
+      --border-focus: #6366f1;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent: #ec4899;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --radius: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Header */
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .brand span {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: 6px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* Main Container */
+    .app-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+    }
+
+    /* Left Sidebar */
+    .sidebar {
+      width: 380px;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    /* Drop Zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--bg-card);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.08);
+    }
+
+    .drop-zone img {
+      max-width: 100%;
+      max-height: 120px;
+      border-radius: 6px;
+      margin-top: 10px;
+      display: none;
+      object-fit: contain;
+    }
+
+    .preset-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-chip:hover {
+      background: var(--border);
+    }
+
+    /* Shape selector grid */
+    .shape-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .shape-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 8px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .shape-btn:hover {
+      border-color: #4b5563;
+    }
+
+    .shape-btn.active {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.15);
+      font-weight: 600;
+    }
+
+    /* Control Groups */
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .control-val {
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border);
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    select, input[type="text"], input[type="number"] {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      outline: none;
+      font-size: 13px;
+      width: 100%;
+    }
+
+    select:focus, input:focus {
+      border-color: var(--primary);
+    }
+
+    .duotone-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .duotone-row input[type="color"] {
+      -webkit-appearance: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      width: 38px;
+      height: 38px;
+      background: none;
+      cursor: pointer;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #818cf8);
+      color: white;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--primary-hover), var(--primary));
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, var(--accent), #f43f5e);
+      color: white;
+      box-shadow: 0 4px 14px rgba(236, 72, 153, 0.3);
+    }
+
+    .btn-accent:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+
+    /* Right Main Area */
+    .stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-dark);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Stage Tabs */
+    .stage-tabs {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 4px;
+      padding: 8px 16px;
+      align-items: center;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn.active {
+      color: var(--text);
+      background: var(--bg-card);
+    }
+
+    .stage-stats {
+      margin-left: auto;
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      align-items: center;
+    }
+
+    .stage-stats strong {
+      color: var(--text);
+    }
+
+    /* Canvas Viewport */
+    .canvas-viewport {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      padding: 24px;
+      position: relative;
+      background-size: 20px 20px;
+    }
+
+    .canvas-viewport.checkerboard {
+      background-image: 
+        linear-gradient(45deg, #161821 25%, transparent 25%),
+        linear-gradient(-45deg, #161821 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #161821 75%),
+        linear-gradient(-45deg, transparent 75%, #161821 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+
+    #svg-container {
+      max-width: 90%;
+      max-height: 90%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 10px 25px rgba(0,0,0,0.5));
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    #svg-container svg {
+      max-width: 100%;
+      max-height: 75vh;
+      height: auto;
+      display: block;
+    }
+
+    /* Variations Grid View */
+    .variations-container {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .variations-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .var-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .var-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .var-preview {
+      background: var(--bg-dark);
+      border-radius: 6px;
+      height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .var-preview svg {
+      max-width: 100%;
+      max-height: 100%;
+      height: auto;
+    }
+
+    .var-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .var-title {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .var-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .var-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* XML Code Inspector */
+    .code-container {
+      flex: 1;
+      padding: 24px;
+      display: none;
+      overflow: hidden;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .code-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      color: #818cf8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      flex: 1;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Loading Overlay */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 17, 23, 0.85);
+      backdrop-filter: blur(4px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 100;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid rgba(99, 102, 241, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .loading-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon">▲</div>
+      <div>
+        <h1>Primitive SVG Studio <span>v2.0</span></h1>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="toggleCheckerboard()">🏁 Checkerboard</button>
+      <button class="btn btn-secondary" onclick="copySVG()">📋 Copy SVG</button>
+      <button class="btn btn-primary" onclick="downloadCurrentSVG()">💾 Download SVG</button>
+    </div>
+  </header>
+
+  <!-- App Body -->
+  <div class="app-container">
+    
+    <!-- Sidebar Controls -->
+    <div class="sidebar">
+      
+      <!-- Source Image Upload -->
+      <div>
+        <div class="section-title">Source Image</div>
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+          <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
+          <div id="drop-text">
+            <p style="font-size: 13px; font-weight:600;">Drag & Drop or Click to Upload</p>
+            <p style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">PNG, JPEG, WebP</p>
+          </div>
+          <img id="image-preview" alt="Preview">
+        </div>
+        <div class="preset-row">
+          <span style="font-size:11px; color:var(--text-muted); align-self:center;">Presets:</span>
+          <button class="btn-chip" onclick="loadExample('owl')">🦉 Owl</button>
+          <button class="btn-chip" onclick="loadExample('monalisa')">🖼 Mona Lisa</button>
+          <button class="btn-chip" onclick="loadExample('pyramids')">▲ Pyramids</button>
+          <button class="btn-chip" onclick="loadExample('lenna')">👒 Lenna</button>
+        </div>
+      </div>
+
+      <!-- Primitive Shape -->
+      <div>
+        <div class="section-title">Geometric Primitive</div>
+        <div class="shape-grid">
+          <button class="shape-btn active" data-mode="1" onclick="selectShape(1)">▲ Triangles</button>
+          <button class="shape-btn" data-mode="4" onclick="selectShape(4)">● Circles</button>
+          <button class="shape-btn" data-mode="6" onclick="selectShape(6)">〰 Béziers</button>
+          <button class="shape-btn" data-mode="9" onclick="selectShape(9)">╱ Lines</button>
+          <button class="shape-btn" data-mode="3" onclick="selectShape(3)">⬭ Ellipses</button>
+          <button class="shape-btn" data-mode="5" onclick="selectShape(5)">◇ Rotated Rect</button>
+          <button class="shape-btn" data-mode="8" onclick="selectShape(8)">⬡ Polygons</button>
+          <button class="shape-btn" data-mode="2" onclick="selectShape(2)">■ Rectangles</button>
+          <button class="shape-btn" data-mode="7" onclick="selectShape(7)">⬯ Rotated Ellipse</button>
+          <button class="shape-btn" data-mode="0" onclick="selectShape(0)">✦ Combo</button>
+        </div>
+      </div>
+
+      <!-- Artistic Palette -->
+      <div class="control-group">
+        <div class="control-header">
+          <span>Artistic Palette</span>
+        </div>
+        <select id="palette-select" onchange="toggleDuotoneInputs()">
+          <option value="original">Original Colors</option>
+          <option value="grayscale">Grayscale / B&W</option>
+          <option value="cyberpunk">Cyberpunk (Neon Magenta & Cyan)</option>
+          <option value="sunset">Sunset Glow (Purple & Gold)</option>
+          <option value="sepia">Sepia / Vintage</option>
+          <option value="matrix">Emerald / Matrix</option>
+          <option value="monochrome">Ocean Monochrome</option>
+          <option value="invert">Inverted Colorway</option>
+          <option value="duotone">Custom Duotone...</option>
+        </select>
+        <div class="duotone-row" id="duotone-row" style="display:none; margin-top: 6px;">
+          <input type="color" id="duotone-1" value="#110022">
+          <input type="color" id="duotone-2" value="#00ffcc">
+          <span style="font-size:12px; color:var(--text-muted)">Shadows & Highlights</span>
+        </div>
+      </div>
+
+      <!-- Render Mode (Fill vs Wireframe Outline) -->
+      <div class="control-group">
+        <div class="control-header">
+          <span>Rendering Style</span>
+        </div>
+        <select id="render-mode-select" onchange="toggleStrokeInputs()">
+          <option value="fill">Filled Geometric Primitives</option>
+          <option value="stroke">Stroked Wireframe Outlines (fill="none")</option>
+        </select>
+        <div id="stroke-width-group" style="display:none; margin-top: 6px;">
+          <div class="control-header">
+            <span style="font-size:12px; color:var(--text-muted)">Stroke Width</span>
+            <span class="control-val" id="stroke-val">1.5px</span>
+          </div>
+          <input type="range" id="stroke-width-slider" min="0.5" max="8" step="0.5" value="1.5" oninput="document.getElementById('stroke-val').innerText = this.value + 'px'">
+        </div>
+      </div>
+
+      <!-- Shapes Count Slider -->
+      <div class="control-group">
+        <div class="control-header">
+          <span>Primitive Count</span>
+          <span class="control-val" id="count-val">80</span>
+        </div>
+        <input type="range" id="count-slider" min="10" max="500" value="80" oninput="document.getElementById('count-val').innerText = this.value">
+        <div class="preset-row">
+          <button class="btn-chip" onclick="setCount(30)">30 (Minimal)</button>
+          <button class="btn-chip" onclick="setCount(80)">80 (Abstract)</button>
+          <button class="btn-chip" onclick="setCount(150)">150 (Stylized)</button>
+          <button class="btn-chip" onclick="setCount(300)">300 (Fine)</button>
+        </div>
+      </div>
+
+      <!-- Opacity / Alpha Slider -->
+      <div class="control-group">
+        <div class="control-header">
+          <span>Shape Opacity (Alpha)</span>
+          <span class="control-val" id="alpha-val">128</span>
+        </div>
+        <input type="range" id="alpha-slider" min="1" max="255" value="128" oninput="document.getElementById('alpha-val').innerText = this.value">
+        <label style="font-size: 11px; color: var(--text-muted); display:flex; gap:6px; align-items:center; margin-top:4px;">
+          <input type="checkbox" id="auto-alpha" onchange="toggleAutoAlpha(this)"> Algorithm Auto-Alpha
+        </label>
+      </div>
+
+      <!-- Background Selection -->
+      <div class="control-group">
+        <div class="control-header">
+          <span>Canvas Background</span>
+        </div>
+        <select id="bg-select">
+          <option value="avg">Auto Average Color</option>
+          <option value="transparent">Transparent (No Background)</option>
+          <option value="#000000">Pure Black (#000000)</option>
+          <option value="#ffffff">Pure White (#ffffff)</option>
+          <option value="#18181b">Dark Charcoal (#18181b)</option>
+        </select>
+      </div>
+
+      <!-- Working Resolution -->
+      <div class="control-group">
+        <div class="control-header">
+          <span>Speed / Resolution</span>
+        </div>
+        <select id="speed-select">
+          <option value="256">Balanced (256px) - Fastest (~0.8s)</option>
+          <option value="384">High Quality (384px) (~1.5s)</option>
+          <option value="512">Ultra Detail (512px) (~3.0s)</option>
+        </select>
+      </div>
+
+      <!-- Action CTAs -->
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+        <button class="btn btn-primary" onclick="generateSingle()">✨ Generate SVG</button>
+        <button class="btn btn-accent" onclick="generateVariations()">🎲 Generate 4 Variations Matrix</button>
+      </div>
+
+    </div>
+
+    <!-- Main Right Stage -->
+    <div class="stage">
+      
+      <!-- Stage Tabs & Stats -->
+      <div class="stage-tabs">
+        <button class="tab-btn active" id="tab-canvas" onclick="switchTab('canvas')">🖼 Studio View</button>
+        <button class="tab-btn" id="tab-variations" onclick="switchTab('variations')">▦ Variations Matrix</button>
+        <button class="tab-btn" id="tab-code" onclick="switchTab('code')">❮/❯ SVG Code</button>
+
+        <div class="stage-stats" id="stage-stats" style="visibility:hidden">
+          <span>Shapes: <strong id="stat-shapes">0</strong></span>
+          <span>Time: <strong id="stat-time">0.0s</strong></span>
+          <span>RMSE: <strong id="stat-score">0.000</strong></span>
+          <span>Size: <strong id="stat-size">0 KB</strong></span>
+        </div>
+      </div>
+
+      <!-- View 1: Canvas Studio Viewport -->
+      <div class="canvas-viewport checkerboard" id="viewport-canvas">
+        <div id="svg-container">
+          <div style="color:var(--text-muted); text-align:center;">
+            <p style="font-size: 40px; margin-bottom: 8px;">🎨</p>
+            <p style="font-size: 15px; font-weight:600;">No SVG generated yet</p>
+            <p style="font-size: 13px; margin-top:4px;">Upload an image or pick a preset, then click "Generate SVG"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- View 2: Variations Grid -->
+      <div class="variations-container" id="viewport-variations">
+        <div class="variations-grid" id="variations-grid">
+          <!-- Cards inserted dynamically -->
+        </div>
+      </div>
+
+      <!-- View 3: SVG Code Inspector -->
+      <div class="code-container" id="viewport-code">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:12px; color:var(--text-muted)">Raw Vector Markup</span>
+          <button class="btn btn-secondary" onclick="copySVG()">📋 Copy Code</button>
+        </div>
+        <div class="code-box" id="code-box"></div>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loading-title">Generating Geometric Primitives...</div>
+        <div class="loading-sub" id="loading-desc">Simulating scanline rasterization & hill climbing</div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    let currentImageBase64 = null;
+    let currentExampleName = "owl";
+    let currentShapeMode = 1;
+    let currentSVG = "";
+
+    // Load default example on startup
+    window.onload = () => {
+      loadExample('owl');
+    };
+
+    function selectShape(mode) {
+      currentShapeMode = mode;
+      document.querySelectorAll('.shape-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.mode) === mode);
+      });
+    }
+
+    function setCount(val) {
+      document.getElementById('count-slider').value = val;
+      document.getElementById('count-val').innerText = val;
+    }
+
+    function toggleAutoAlpha(cb) {
+      document.getElementById('alpha-slider').disabled = cb.checked;
+      document.getElementById('alpha-val').innerText = cb.checked ? "Auto" : document.getElementById('alpha-slider').value;
+    }
+
+    function toggleDuotoneInputs() {
+      const isDuotone = document.getElementById('palette-select').value === 'duotone';
+      document.getElementById('duotone-row').style.display = isDuotone ? 'flex' : 'none';
+    }
+
+    function toggleStrokeInputs() {
+      const isStroke = document.getElementById('render-mode-select').value === 'stroke';
+      document.getElementById('stroke-width-group').style.display = isStroke ? 'block' : 'none';
+    }
+
+    function toggleCheckerboard() {
+      document.getElementById('viewport-canvas').classList.toggle('checkerboard');
+    }
+
+    function loadExample(name) {
+      currentExampleName = name;
+      currentImageBase64 = null;
+      const preview = document.getElementById('image-preview');
+      preview.src = `/api/examples/${name}.png`;
+      preview.style.display = 'block';
+      document.getElementById('drop-text').style.display = 'none';
+    }
+
+    function handleFileSelect(evt) {
+      const file = evt.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        currentImageBase64 = e.target.result;
+        currentExampleName = "";
+        const preview = document.getElementById('image-preview');
+        preview.src = currentImageBase64;
+        preview.style.display = 'block';
+        document.getElementById('drop-text').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Drag and Drop
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFileSelect({ target: { files: e.dataTransfer.files } });
+      }
+    });
+
+    function switchTab(tab) {
+      document.getElementById('tab-canvas').classList.toggle('active', tab === 'canvas');
+      document.getElementById('tab-variations').classList.toggle('active', tab === 'variations');
+      document.getElementById('tab-code').classList.toggle('active', tab === 'code');
+
+      document.getElementById('viewport-canvas').style.display = tab === 'canvas' ? 'flex' : 'none';
+      document.getElementById('viewport-variations').style.display = tab === 'variations' ? 'block' : 'none';
+      document.getElementById('viewport-code').style.display = tab === 'code' ? 'flex' : 'none';
+    }
+
+    function getPayload() {
+      const autoAlpha = document.getElementById('auto-alpha').checked;
+      const alpha = autoAlpha ? 0 : parseInt(document.getElementById('alpha-slider').value);
+      const isStroke = document.getElementById('render-mode-select').value === 'stroke';
+      const strokeWidth = parseFloat(document.getElementById('stroke-width-slider').value);
+
+      return {
+        image: currentImageBase64 || "",
+        example: currentExampleName || "",
+        mode: currentShapeMode,
+        count: parseInt(document.getElementById('count-slider').value),
+        alpha: alpha,
+        inputSize: parseInt(document.getElementById('speed-select').value),
+        outputSize: 1024,
+        background: document.getElementById('bg-select').value,
+        palette: document.getElementById('palette-select').value,
+        duotone1: document.getElementById('duotone-1').value,
+        duotone2: document.getElementById('duotone-2').value,
+        strokeOnly: isStroke,
+        strokeWidth: strokeWidth,
+        groupLayers: true
+      };
+    }
+
+    function showLoading(title, desc) {
+      document.getElementById('loading-title').innerText = title || "Generating Geometric Primitives...";
+      document.getElementById('loading-desc').innerText = desc || "Optimizing shapes via hill climbing...";
+      document.getElementById('loading-overlay').style.display = 'flex';
+    }
+
+    function hideLoading() {
+      document.getElementById('loading-overlay').style.display = 'none';
+    }
+
+    async function generateSingle() {
+      const payload = getPayload();
+      showLoading("Generating " + payload.count + " Shapes...", "Running fast hill-climbing optimization in Go");
+      switchTab('canvas');
+
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        hideLoading();
+
+        if (data.error) {
+          alert("Error: " + data.error);
+          return;
+        }
+
+        currentSVG = data.svg;
+        document.getElementById('svg-container').innerHTML = data.svg;
+        document.getElementById('code-box').innerText = data.svg;
+
+        // Update stats
+        document.getElementById('stage-stats').style.visibility = 'visible';
+        document.getElementById('stat-shapes').innerText = data.shapes;
+        document.getElementById('stat-time').innerText = data.elapsed.toFixed(2) + 's';
+        document.getElementById('stat-score').innerText = data.score.toFixed(4);
+        document.getElementById('stat-size').innerText = (data.svgSize / 1024).toFixed(1) + ' KB';
+      } catch (err) {
+        hideLoading();
+        alert("Request failed: " + err);
+      }
+    }
+
+    async function generateVariations() {
+      const payload = getPayload();
+      showLoading("Generating 4 Variations Matrix...", "Computing parallel interpretations: Triangles, Circles, Cyberpunk & Wireframes");
+      switchTab('variations');
+
+      try {
+        const res = await fetch('/api/variations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        hideLoading();
+
+        if (data.error) {
+          alert("Error: " + data.error);
+          return;
+        }
+
+        const grid = document.getElementById('variations-grid');
+        grid.innerHTML = '';
+
+        data.variations.forEach((item, idx) => {
+          const card = document.createElement('div');
+          card.className = 'var-card';
+          card.innerHTML = `
+            <div class="var-info">
+              <div>
+                <div class="var-title">${item.title}</div>
+                <div class="var-desc">${item.description}</div>
+              </div>
+            </div>
+            <div class="var-preview">${item.result.svg}</div>
+            <div class="var-meta">
+              <span>${item.result.shapes} Primitives • ${item.result.elapsed.toFixed(2)}s</span>
+              <span>${(item.result.svgSize / 1024).toFixed(1)} KB</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-secondary" style="flex:1; font-size:11px;" onclick="loadVariationIntoStudio(${idx})">Load in Studio</button>
+              <button class="btn btn-primary" style="flex:1; font-size:11px;" onclick="downloadSVGString(variationsData[${idx}].result.svg, '${item.title.toLowerCase().replace(/\\s+/g, '_')}.svg')">Download</button>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+
+        window.variationsData = data.variations;
+
+      } catch (err) {
+        hideLoading();
+        alert("Request failed: " + err);
+      }
+    }
+
+    function loadVariationIntoStudio(idx) {
+      if (!window.variationsData || !window.variationsData[idx]) return;
+      const v = window.variationsData[idx].result;
+      currentSVG = v.svg;
+      document.getElementById('svg-container').innerHTML = v.svg;
+      document.getElementById('code-box').innerText = v.svg;
+      document.getElementById('stage-stats').style.visibility = 'visible';
+      document.getElementById('stat-shapes').innerText = v.shapes;
+      document.getElementById('stat-time').innerText = v.elapsed.toFixed(2) + 's';
+      document.getElementById('stat-score').innerText = v.score.toFixed(4);
+      document.getElementById('stat-size').innerText = (v.svgSize / 1024).toFixed(1) + ' KB';
+      switchTab('canvas');
+    }
+
+    function copySVG() {
+      if (!currentSVG) {
+        alert("No SVG generated yet!");
+        return;
+      }
+      navigator.clipboard.writeText(currentSVG).then(() => {
+        alert("SVG code copied to clipboard!");
+      });
+    }
+
+    function downloadCurrentSVG() {
+      if (!currentSVG) {
+        alert("No SVG generated yet!");
+        return;
+      }
+      downloadSVGString(currentSVG, "primitive_art.svg");
+    }
+
+    function downloadSVGString(svgStr, filename) {
+      const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>

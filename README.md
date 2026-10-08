@@ -23,30 +23,55 @@ posts the picture using the Twitter API.
 
 You can tweet a picture to the bot and it will process it for you.
 
+### 🎨 Primitive SVG Studio (Web UI)
+
+Run the studio locally in your browser with interactive drag-and-drop, real-time SVG generation, and one-click variation matrices!
+
+```bash
+# Launch the web studio (opens at http://localhost:8080)
+go run .
+# Or build and run
+./primitive_bin -serve :8080
+```
+
+- **Drag & Drop**: Upload any image or choose built-in presets.
+- **Variations Matrix**: Generate 4 distinct artistic interpretations side-by-side in ~2 seconds.
+- **Live SVG Export**: Download clean `.svg` files or copy vector markup directly to your clipboard.
+
 ### Command-line Usage
 
-Run it on your own images! First, [install Go](https://golang.org/doc/install).
+```bash
+# Basic usage
+./primitive_bin -i input.png -o output.svg -n 100
 
-    go get -u github.com/fogleman/primitive
-    primitive -i input.png -o output.png -n 100
+# Artistic Cyberpunk Palette with Straight Lines
+./primitive_bin -i input.png -o output.svg -n 60 -m 9 -palette cyberpunk
 
-Small input images should be used (like 256x256px). You don't need the detail anyway and the code will run faster.
+# Architectural Wireframes (Outline / Stroke Mode)
+./primitive_bin -i input.png -o output.svg -n 80 -m 5 -stroke -sw 1.5 -transparent
+
+# Custom Duotone
+./primitive_bin -i input.png -o output.svg -n 100 -m 1 -palette duotone -d1 "#110022" -d2 "#00ffcc"
+```
 
 | Flag | Default | Description |
 | --- | --- | --- |
-| `i` | n/a | input file |
-| `o` | n/a | output file |
-| `n` | n/a | number of shapes |
-| `m` | 1 | mode: 0=combo, 1=triangle, 2=rect, 3=ellipse, 4=circle, 5=rotatedrect, 6=beziers, 7=rotatedellipse, 8=polygon |
-| `rep` | 0 | add N extra shapes each iteration with reduced search (mostly good for beziers) |
-| `nth` | 1 | save every Nth frame (only when `%d` is in output path) |
+| `i` | n/a | input image file |
+| `o` | n/a | output file (`.svg`, `.png`, `.jpg`, `.gif`) |
+| `n` | n/a | number of geometric primitives |
+| `m` | 1 | mode: 0=combo, 1=triangle, 2=rect, 3=ellipse, 4=circle, 5=rotatedrect, 6=beziers, 7=rotatedellipse, 8=polygon, 9=line |
+| `serve` | off | start web studio server on port (e.g. `:8080`) |
+| `palette` | original | artistic palette: `original`, `grayscale`, `duotone`, `cyberpunk`, `sunset`, `sepia`, `matrix`, `monochrome`, `invert` |
+| `d1`, `d2` | black/white | custom duotone hex shadow & highlight colors |
+| `transparent`| false | render transparent SVG canvas without background rect |
+| `stroke` | false | render primitives as stroked wireframe outlines (`fill="none"`) |
+| `sw` | 1.0 | stroke width for wireframe shapes |
+| `group` | false | group each shape in `<g id="primitive-N">` layers |
 | `r` | 256 | resize large input images to this size before processing |
-| `s` | 1024 | output image size |
-| `a` | 128 | color alpha (use `0` to let the algorithm choose alpha for each shape) |
-| `bg` | avg | starting background color (hex) |
+| `s` | 1024 | output SVG / image size |
+| `a` | 128 | color alpha (use `0` for auto-alpha) |
+| `bg` | avg | starting background color (hex or `avg`) |
 | `j` | 0 | number of parallel workers (default uses all cores) |
-| `v` | off | verbose output |
-| `vv` | off | very verbose output |
 
 ### Output Formats
 

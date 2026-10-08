@@ -83,17 +83,69 @@ func (model *Model) Frames(scoreDelta float64) []image.Image {
 	return result
 }
 
+type SVGOptions struct {
+	ViewBox       bool
+	TransparentBG bool
+	StrokeOnly    bool
+	StrokeWidth   float64
+	Palette       string
+	Duotone1      Color
+	Duotone2      Color
+	GroupLayers   bool
+}
+
+func DefaultSVGOptions() SVGOptions {
+	return SVGOptions{
+		ViewBox:     true,
+		StrokeWidth: 1.0,
+	}
+}
+
 func (model *Model) SVG() string {
+	return model.SVGWithOptions(DefaultSVGOptions())
+}
+
+func (model *Model) SVGWithOptions(opts SVGOptions) string {
 	bg := model.Background
+	if opts.Palette != "" {
+		bg = bg.ApplyPalette(opts.Palette, opts.Duotone1, opts.Duotone2)
+	}
+
 	var lines []string
-	lines = append(lines, fmt.Sprintf("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"%d\" height=\"%d\">", model.Sw, model.Sh))
-	lines = append(lines, fmt.Sprintf("<rect x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" fill=\"#%02x%02x%02x\" />", model.Sw, model.Sh, bg.R, bg.G, bg.B))
+	if opts.ViewBox {
+		lines = append(lines, fmt.Sprintf("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"%d\" height=\"%d\" viewBox=\"0 0 %d %d\">", model.Sw, model.Sh, model.Sw, model.Sh))
+	} else {
+		lines = append(lines, fmt.Sprintf("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"%d\" height=\"%d\">", model.Sw, model.Sh))
+	}
+
+	if !opts.TransparentBG {
+		lines = append(lines, fmt.Sprintf("<rect x=\"0\" y=\"0\" width=\"%d\" height=\"%d\" fill=\"#%02x%02x%02x\" />", model.Sw, model.Sh, bg.R, bg.G, bg.B))
+	}
+
 	lines = append(lines, fmt.Sprintf("<g transform=\"scale(%f) translate(0.5 0.5)\">", model.Scale))
 	for i, shape := range model.Shapes {
 		c := model.Colors[i]
-		attrs := "fill=\"#%02x%02x%02x\" fill-opacity=\"%f\""
-		attrs = fmt.Sprintf(attrs, c.R, c.G, c.B, float64(c.A)/255)
-		lines = append(lines, shape.SVG(attrs))
+		if opts.Palette != "" {
+			c = c.ApplyPalette(opts.Palette, opts.Duotone1, opts.Duotone2)
+		}
+
+		var attrs string
+		if opts.StrokeOnly {
+			sw := opts.StrokeWidth
+			if sw <= 0 {
+				sw = 1.0
+			}
+			attrs = fmt.Sprintf("fill=\"none\" stroke=\"#%02x%02x%02x\" stroke-opacity=\"%f\" stroke-width=\"%.2f\"", c.R, c.G, c.B, float64(c.A)/255, sw)
+		} else {
+			attrs = fmt.Sprintf("fill=\"#%02x%02x%02x\" fill-opacity=\"%f\"", c.R, c.G, c.B, float64(c.A)/255)
+		}
+
+		shapeSVG := shape.SVG(attrs)
+		if opts.GroupLayers {
+			lines = append(lines, fmt.Sprintf("  <g id=\"primitive-%d\">\n    %s\n  </g>", i+1, shapeSVG))
+		} else {
+			lines = append(lines, shapeSVG)
+		}
 	}
 	lines = append(lines, "</g>")
 	lines = append(lines, "</svg>")
