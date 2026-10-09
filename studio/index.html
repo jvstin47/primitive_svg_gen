@@ -319,6 +319,68 @@
       transform: translateY(-1px);
     }
 
+    /* Dropdown Styles */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 6px);
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      min-width: 240px;
+      z-index: 1000;
+      padding: 6px;
+    }
+
+    .dropdown-menu.show {
+      display: block;
+      animation: fadeIn 0.15s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      color: var(--text);
+      text-align: left;
+    }
+
+    .dropdown-item:hover {
+      background: rgba(99, 102, 241, 0.15);
+    }
+
+    .dropdown-item .item-icon {
+      font-size: 18px;
+    }
+
+    .dropdown-item strong {
+      display: block;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .dropdown-item small {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
     /* Right Main Area */
     .stage {
       flex: 1;
@@ -562,7 +624,27 @@
     <div class="header-actions">
       <button class="btn btn-secondary" onclick="toggleCheckerboard()">🏁 Checkerboard</button>
       <button class="btn btn-secondary" onclick="copySVG()">📋 Copy SVG</button>
-      <button class="btn btn-primary" onclick="downloadCurrentSVG()">💾 Download SVG</button>
+      <div class="dropdown">
+        <button class="btn btn-primary" onclick="toggleDownloadMenu(event)">💾 Export Image ▼</button>
+        <div class="dropdown-menu" id="download-menu">
+          <div class="dropdown-item" onclick="downloadCurrentSVG()">
+            <span class="item-icon">📐</span>
+            <div><strong>Vector SVG</strong><small>Scalable XML vector graphic</small></div>
+          </div>
+          <div class="dropdown-item" onclick="downloadCurrentRaster('png', 1)">
+            <span class="item-icon">🖼</span>
+            <div><strong>Standard PNG</strong><small>Lossless raster (1024px)</small></div>
+          </div>
+          <div class="dropdown-item" onclick="downloadCurrentRaster('png', 2)">
+            <span class="item-icon">✨</span>
+            <div><strong>Ultra-HD PNG</strong><small>High resolution (2048px)</small></div>
+          </div>
+          <div class="dropdown-item" onclick="downloadCurrentRaster('jpeg', 1)">
+            <span class="item-icon">📷</span>
+            <div><strong>JPEG Image</strong><small>Photo format (95% quality)</small></div>
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -960,9 +1042,11 @@
               <span>${item.result.shapes} Primitives • ${item.result.elapsed.toFixed(2)}s</span>
               <span>${(item.result.svgSize / 1024).toFixed(1)} KB</span>
             </div>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:6px;">
               <button class="btn btn-secondary" style="flex:1; font-size:11px;" onclick="loadVariationIntoStudio(${idx})">Load in Studio</button>
-              <button class="btn btn-primary" style="flex:1; font-size:11px;" onclick="downloadSVGString(variationsData[${idx}].result.svg, '${item.title.toLowerCase().replace(/\\s+/g, '_')}.svg')">Download</button>
+              <button class="btn btn-primary" style="flex:1; font-size:11px;" onclick="downloadSVGString(variationsData[${idx}].result.svg, '${item.title.toLowerCase().replace(/\s+/g, '_')}.svg')">SVG</button>
+              <button class="btn btn-secondary" style="font-size:11px; padding: 6px 10px;" title="Download PNG" onclick="downloadRaster(variationsData[${idx}].result.svg, 'png', '${item.title.toLowerCase().replace(/\s+/g, '_')}.png', 1)">PNG</button>
+              <button class="btn btn-secondary" style="font-size:11px; padding: 6px 10px;" title="Download JPG" onclick="downloadRaster(variationsData[${idx}].result.svg, 'jpeg', '${item.title.toLowerCase().replace(/\s+/g, '_')}.jpg', 1)">JPG</button>
             </div>
           `;
           grid.appendChild(card);
@@ -990,6 +1074,17 @@
       switchTab('canvas');
     }
 
+    function toggleDownloadMenu(e) {
+      if (e) e.stopPropagation();
+      const menu = document.getElementById('download-menu');
+      if (menu) menu.classList.toggle('show');
+    }
+
+    window.addEventListener('click', () => {
+      const menu = document.getElementById('download-menu');
+      if (menu) menu.classList.remove('show');
+    });
+
     function copySVG() {
       if (!currentSVG) {
         alert("No SVG generated yet!");
@@ -1006,6 +1101,82 @@
         return;
       }
       downloadSVGString(currentSVG, "primitive_art.svg");
+    }
+
+    function downloadCurrentRaster(format, scale = 1) {
+      if (!currentSVG) {
+        alert("No SVG generated yet!");
+        return;
+      }
+      const ext = (format === 'jpeg' || format === 'jpg') ? 'jpg' : 'png';
+      const label = scale > 1 ? `_${scale}x` : '';
+      downloadRaster(currentSVG, format, `primitive_art${label}.${ext}`, scale);
+    }
+
+    function rasterizeSVG(svgStr, format = 'png', scale = 1, bgHex = null) {
+      return new Promise((resolve, reject) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgStr, 'image/svg+xml');
+        const svgEl = doc.querySelector('svg');
+        if (!svgEl) return reject(new Error('Invalid SVG'));
+
+        let width = parseFloat(svgEl.getAttribute('width')) || 1024;
+        let height = parseFloat(svgEl.getAttribute('height')) || 1024;
+
+        if (svgEl.getAttribute('viewBox')) {
+          const parts = svgEl.getAttribute('viewBox').trim().split(/[\s,]+/).map(Number);
+          if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+            width = parts[2];
+            height = parts[3];
+          }
+        }
+
+        const targetW = Math.round(width * scale);
+        const targetH = Math.round(height * scale);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+
+        // Fill background for JPG (since JPEG doesn't support transparency) or if requested
+        if (format === 'jpeg' || format === 'jpg' || bgHex) {
+          ctx.fillStyle = bgHex || '#ffffff';
+          ctx.fillRect(0, 0, targetW, targetH);
+        }
+
+        const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+        const URLObj = window.URL || window.webkitURL || window;
+        const blobURL = URLObj.createObjectURL(svgBlob);
+
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, targetW, targetH);
+          URLObj.revokeObjectURL(blobURL);
+          const mime = (format === 'jpeg' || format === 'jpg') ? 'image/jpeg' : 'image/png';
+          resolve(canvas.toDataURL(mime, 0.95));
+        };
+        img.onerror = (err) => {
+          URLObj.revokeObjectURL(blobURL);
+          reject(new Error('Could not rasterize SVG: ' + err));
+        };
+        img.src = blobURL;
+      });
+    }
+
+    async function downloadRaster(svgStr, format, filename, scale = 1) {
+      try {
+        const dataUrl = await rasterizeSVG(svgStr, format, scale);
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (err) {
+        console.error(err);
+        alert('Failed to export ' + format.toUpperCase() + ': ' + err.message);
+      }
     }
 
     function downloadSVGString(svgStr, filename) {
